@@ -1043,7 +1043,8 @@ def main():
 
     print(f"\n  🎯 Open http://localhost:{args.port} in your browser!")
     print(f"  Press Ctrl+C to quit.\n")
-    app.run(host="0.0.0.0", port=args.port, debug=False)
+    port = args.port if args.port else int(os.environ.get("PORT", 5050))
+    app.run(host="0.0.0.0", port=port, debug=False)
 
 
 if __name__ == "__main__":
