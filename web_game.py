@@ -11,6 +11,8 @@ import argparse
 import os
 import random
 import sys
+import unicodedata
+from difflib import SequenceMatcher
 
 import pandas as pd
 from flask import Flask, render_template_string, jsonify, request, send_file, session
@@ -986,9 +988,21 @@ def guess():
         return jsonify(get_state_dict())
 
     def normalize(t):
+        # Strip accents/diacritics (e.g. é→e, ñ→n, ü→u)
+        t = unicodedata.normalize("NFD", t)
+        t = "".join(c for c in t if unicodedata.category(c) != "Mn")
         return "".join(c for c in t.lower() if c.isalpha())
 
-    correct = normalize(guess_text) == normalize(s["current_name"])
+    norm_guess = normalize(guess_text)
+    norm_answer = normalize(s["current_name"])
+
+    # Exact match after normalization
+    if norm_guess == norm_answer:
+        correct = True
+    else:
+        # Fuzzy match: allow ~80% similarity to catch typos/misspellings
+        ratio = SequenceMatcher(None, norm_guess, norm_answer).ratio()
+        correct = ratio >= 0.80
     guesses = s["guesses"] + [{"text": guess_text, "correct": correct}]
     session["guesses"] = guesses
 
